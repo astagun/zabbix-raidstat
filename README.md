@@ -20,6 +20,7 @@ Options:
   -i, --indent <INT>       indent json output level [default: 0]
 
   -h, --help               show this screen
+```
 
 ## Compilation:
 Run `go build -o raidstat` or use `./build.sh` for building with docker
