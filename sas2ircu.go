@@ -5,32 +5,34 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/ps78674/zabbix-raidstat/plugins/internal/functions"
 )
 
+type SAS2IrcuVendor struct {
+	execPath string
+}
+
 // GetControllersIDs - get number of controllers in the system
-func GetControllersIDs(execPath string) []string {
-	inputData := functions.GetCommandOutput(execPath, "list")
-	return functions.GetRegexpAllSubmatch(inputData, "\\s+(\\d+)\\s+.*")
+func (v SAS2IrcuVendor) GetControllersIDs() []string {
+	inputData := GetCommandOutput(v.execPath, "list")
+	return GetRegexpAllSubmatch(inputData, "\\s+(\\d+)\\s+.*")
 }
 
 // GetLogicalDrivesIDs - get number of logical drives for controller with ID 'controllerID'
-func GetLogicalDrivesIDs(execPath string, controllerID string) []string {
-	inputData := functions.GetCommandOutput(execPath, controllerID, "display")
-	return functions.GetRegexpAllSubmatch(inputData, "IR volume (\\d+)")
+func (v SAS2IrcuVendor) GetLogicalDrivesIDs(controllerID string) []string {
+	inputData := GetCommandOutput(v.execPath, controllerID, "display")
+	return GetRegexpAllSubmatch(inputData, "IR volume (\\d+)")
 }
 
 // GetPhysicalDrivesIDs - get number of physical drives for controller with ID 'controllerID'
-func GetPhysicalDrivesIDs(execPath string, controllerID string) []string {
-	inputData := functions.GetCommandOutput(execPath, controllerID, "display")
+func (v SAS2IrcuVendor) GetPhysicalDrivesIDs(controllerID string) []string {
+	inputData := GetCommandOutput(v.execPath, controllerID, "display")
 	sliceArr := GetArraySliceByte(inputData, "Device is a Hard disk", "Drive Type")
 	data := []string{}
 
 	if len(sliceArr) > 0 {
 		for _, v := range sliceArr {
-			enclosure := functions.GetRegexpSubmatch([]byte(v), "Enclosure # *: (.*)")
-			slot := functions.GetRegexpSubmatch([]byte(v), "Slot # *: (.*)")
+			enclosure := GetRegexpSubmatch([]byte(v), "Enclosure # *: (.*)")
+			slot := GetRegexpSubmatch([]byte(v), "Slot # *: (.*)")
 
 			if len(enclosure) > 0 && len(slot) > 0 {
 				data = append(data, fmt.Sprintf("%s:%s", enclosure, slot))
@@ -42,15 +44,15 @@ func GetPhysicalDrivesIDs(execPath string, controllerID string) []string {
 }
 
 // GetControllerStatus - get controller status
-func GetControllerStatus(execPath string, controllerID string, indent int) []byte {
+func (v SAS2IrcuVendor) GetControllerStatus(controllerID string, indent int) []byte {
 	type ReturnData struct {
 		Status string `json:"status"`
 		Model  string `json:"model"`
 		// Temperature string `json:"temperature"`
 	}
 
-	inputData := functions.GetCommandOutput(execPath, controllerID, "display")
-	model := functions.GetRegexpSubmatch(inputData, "Controller type *: (.*)")
+	inputData := GetCommandOutput(v.execPath, controllerID, "display")
+	model := GetRegexpSubmatch(inputData, "Controller type *: (.*)")
 
 	result := regexp.MustCompile("Status of volume\\s+: .*\\((.*)\\)").FindAllStringSubmatch(string(inputData), -1)
 
@@ -77,40 +79,40 @@ func GetControllerStatus(execPath string, controllerID string, indent int) []byt
 	}
 
 	data := ReturnData{
-		Status: functions.TrimSpacesLeftAndRight(status),
-		Model:  functions.TrimSpacesLeftAndRight(model),
+		Status: TrimSpacesLeftAndRight(status),
+		Model:  TrimSpacesLeftAndRight(model),
 	}
 
-	return append(functions.MarshallJSON(data, indent), "\n"...)
+	return append(MarshallJSON(data, indent), "\n"...)
 }
 
 // GetLDStatus - get logical drive status
-func GetLDStatus(execPath string, controllerID string, deviceID string, indent int) []byte {
+func (v SAS2IrcuVendor) GetLDStatus(controllerID string, deviceID string, indent int) []byte {
 	type ReturnData struct {
 		Status string `json:"status"`
 		Size   string `json:"size"`
 	}
 
-	inputData := functions.GetCommandOutput(execPath, controllerID, "display")
+	inputData := GetCommandOutput(v.execPath, controllerID, "display")
 	sliceData := GetSliceByte(inputData, "IR volume "+deviceID, "Physical")
 
-	status := functions.GetRegexpSubmatch(sliceData, "Status of volume *: (.*)")
-	size := functions.GetRegexpSubmatch(sliceData, "Size \\(in MB\\) *: (.*)")
+	status := GetRegexpSubmatch(sliceData, "Status of volume *: (.*)")
+	size := GetRegexpSubmatch(sliceData, "Size \\(in MB\\) *: (.*)")
 
 	if status == "Okay (OKY)" {
 		status = "OK"
 	}
 
 	data := ReturnData{
-		Status: functions.TrimSpacesLeftAndRight(status),
-		Size:   functions.TrimSpacesLeftAndRight(size),
+		Status: TrimSpacesLeftAndRight(status),
+		Size:   TrimSpacesLeftAndRight(size),
 	}
 
-	return append(functions.MarshallJSON(data, indent), "\n"...)
+	return append(MarshallJSON(data, indent), "\n"...)
 }
 
 // GetPDStatus - get physical drive status
-func GetPDStatus(execPath string, controllerID string, deviceID string, indent int) []byte {
+func (v SAS2IrcuVendor) GetPDStatus(controllerID string, deviceID string, indent int) []byte {
 	type ReturnData struct {
 		Status    string `json:"status"`
 		Model     string `json:"model"`
@@ -123,30 +125,30 @@ func GetPDStatus(execPath string, controllerID string, deviceID string, indent i
 		os.Exit(1)
 	}
 
-	inputData := functions.GetCommandOutput(execPath, controllerID, "display")
+	inputData := GetCommandOutput(v.execPath, controllerID, "display")
 	sliceArr := GetArraySliceByte(inputData, "Device is a Hard disk", "Drive Type")
 
 	if len(sliceArr) > 0 {
 		for _, v := range sliceArr {
-			enclosure := functions.GetRegexpSubmatch([]byte(v), "Enclosure # *: (.*)")
-			slot := functions.GetRegexpSubmatch([]byte(v), "Slot # *: (.*)")
+			enclosure := GetRegexpSubmatch([]byte(v), "Enclosure # *: (.*)")
+			slot := GetRegexpSubmatch([]byte(v), "Slot # *: (.*)")
 
 			if enclosure == deviceData[0] && slot == deviceData[1] {
-				status := functions.GetRegexpSubmatch([]byte(v), "[\\s]{2}State *: (.*)")
-				model := functions.GetRegexpSubmatch([]byte(v), "Model Number *: (.*)")
-				totalSize := functions.GetRegexpSubmatch([]byte(v), "Size \\(in MB\\)/\\(in sectors\\) *: (\\d+)/\\d+")
+				status := GetRegexpSubmatch([]byte(v), "[\\s]{2}State *: (.*)")
+				model := GetRegexpSubmatch([]byte(v), "Model Number *: (.*)")
+				totalSize := GetRegexpSubmatch([]byte(v), "Size \\(in MB\\)/\\(in sectors\\) *: (\\d+)/\\d+")
 
 				if status == "Optimal (OPT)" {
 					status = "OK"
 				}
 
 				data := ReturnData{
-					Status:    functions.TrimSpacesLeftAndRight(status),
-					Model:     functions.TrimSpacesLeftAndRight(model),
-					TotalSize: functions.TrimSpacesLeftAndRight(totalSize),
+					Status:    TrimSpacesLeftAndRight(status),
+					Model:     TrimSpacesLeftAndRight(model),
+					TotalSize: TrimSpacesLeftAndRight(totalSize),
 				}
 
-				return append(functions.MarshallJSON(data, indent), "\n"...)
+				return append(MarshallJSON(data, indent), "\n"...)
 			}
 		}
 	}
@@ -212,4 +214,7 @@ func GetArraySliceByte(buf []byte, start string, end string) (data []string) {
 	return
 }
 
-func main() {}
+func NewSAS2IrcuVendor(execPath string) Vendor {
+	v := SAS2IrcuVendor{execPath: execPath}
+	return v
+}
