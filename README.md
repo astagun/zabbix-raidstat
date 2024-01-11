@@ -21,26 +21,12 @@ Options:
 
   -h, --help               show this screen
 
-```
-Config file `config.json` is used for raid vendors -> tools configuration.
-```
-{
-    "vendors": {
-        "hp": "ssacli",
-        "vendor1": "/PATH/TO/BINARY1",
-        "vendor2": "/PATH/TO/BINARY2"
-    }
-}
-```
-Vendor name is used as plugin name (like "hp.so").
-
 ## Compilation:
-Run `make` to compile all in build directory  
-Run `mnake tar` to get an archive  
+Run `go build -o raidstat` or use `./build.sh` for building with docker
 
 ## Installation:
 
 1. Copy `raidstat/zabbix/raidstat.sudoers` to `/etc/sudoers.d/raidstat`
 2. Copy `zabbix/userparameter_raidstat.conf` to `/etc/zabbix/zabbix_agentd.d`
-3. Copy compiled binaries to `/opt/raidstat`
+3. Copy compiled binary to `/opt/raidstat`
 4. Import template`zabbix/zbx_raid_monitoring.xml`
